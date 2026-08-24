@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Meeting Summarizer — Turn spoken meetings into structured summaries, decisions, and action items using AI.">
+    <title>Meeting Summarizer — Turn the room into the record</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+
+    <!-- ── Hero Section ── -->
+    <header id="hero" class="hero">
+        <div class="hero-waveform" id="heroWaveform" aria-hidden="true">
+            <!-- Waveform bars injected by JS -->
+        </div>
+        <div class="hero-content">
+            <h1 class="hero-headline">Turn the room into the record.</h1>
+            <p class="hero-sub">Upload a meeting recording. Get a structured summary, key decisions, and action items — in seconds.</p>
+        </div>
+    </header>
+
+    <!-- ── Upload Section ── -->
+    <main class="container">
+        <section id="uploadSection" class="upload-section">
+            <div id="dropZone" class="drop-zone" role="button" tabindex="0" aria-label="Upload audio file">
+                <div class="drop-zone-icon">
+                    <svg width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+                        <rect x="8" y="20" width="32" height="20" rx="3" stroke="currentColor" stroke-width="2" fill="none"/>
+                        <path d="M16 20V14a8 8 0 0 1 16 0v6" stroke="currentColor" stroke-width="2" fill="none"/>
+                        <rect x="20" y="28" width="8" height="4" rx="1" fill="currentColor" opacity="0.5"/>
+                    </svg>
+                </div>
+                <p class="drop-zone-label">Drop your audio file here</p>
+                <p class="drop-zone-hint">or click to browse — MP3, WAV, M4A up to 25 MB</p>
+                <input type="file" id="fileInput" accept=".mp3,.wav,.m4a,audio/mpeg,audio/wav,audio/x-m4a,audio/mp4" hidden>
+            </div>
+            <p id="fileInfo" class="file-info" aria-live="polite"></p>
+            <button id="processBtn" class="btn btn-primary" disabled>
+                <span class="btn-label">Process Recording</span>
+            </button>
+        </section>
+
+        <!-- ── Progress Section ── -->
+        <section id="progressSection" class="progress-section hidden" aria-live="polite">
+            <div class="vu-meter" id="vuMeter" aria-label="Processing progress">
+                <!-- VU bars injected by JS -->
+            </div>
+            <p class="progress-stage" id="progressStage">Preparing...</p>
+        </section>
+
+        <!-- ── Error Section ── -->
+        <section id="errorSection" class="error-section hidden" aria-live="assertive">
+            <div class="error-card">
+                <div class="error-icon" aria-hidden="true">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                        <path d="M12 8v5M12 16v.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <p class="error-message" id="errorMessage">Something went wrong.</p>
+                <button id="retryBtn" class="btn btn-secondary">Try Again</button>
+            </div>
+        </section>
+
+        <!-- ── Results Section ── -->
+        <section id="resultsSection" class="results-section hidden">
+
+            <!-- Export Bar -->
+            <div class="export-bar">
+                <button id="copySlackBtn" class="btn btn-tool" aria-label="Copy as Slack message">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="2" y="2" width="5" height="5" rx="1" stroke="currentColor" stroke-width="1.5"/><path d="M9 6h5v8H6v-5" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+                    <span>Copy for Slack</span>
+                </button>
+                <button id="downloadMdBtn" class="btn btn-tool" aria-label="Download as Markdown">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 2v9M4 8l4 4 4-4M2 14h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <span>Download .md</span>
+                </button>
+                <button id="newUploadBtn" class="btn btn-tool" aria-label="Process another recording">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M2 8a6 6 0 0 1 10.3-4.1M14 2v4h-4M14 8a6 6 0 0 1-10.3 4.1M2 14v-4h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <span>New Recording</span>
+                </button>
+            </div>
+
+            <!-- Summary Panel -->
+            <div class="console-panel" id="summaryPanel">
+                <div class="panel-header">
+                    <span class="panel-label">SUMMARY</span>
+                </div>
+                <div class="panel-body" id="summaryBody">
+                    <!-- Summary text injected by JS -->
+                </div>
+            </div>
+
+            <!-- Decisions Panel -->
+            <div class="console-panel" id="decisionsPanel">
+                <div class="panel-header">
+                    <span class="panel-label">KEY DECISIONS</span>
+                </div>
+                <div class="panel-body" id="decisionsBody">
+                    <!-- Decision items injected by JS -->
+                </div>
+            </div>
+
+            <!-- Action Items Panel -->
+            <div class="console-panel" id="actionItemsPanel">
+                <div class="panel-header">
+                    <span class="panel-label">ACTION ITEMS</span>
+                </div>
+                <div class="panel-body action-items-grid" id="actionItemsBody">
+                    <!-- Action item cards injected by JS -->
+                </div>
+            </div>
+
+            <!-- Transcript Panel -->
+            <div class="console-panel" id="transcriptPanel">
+                <div class="panel-header">
+                    <span class="panel-label">TRANSCRIPT</span>
+                </div>
+                <div class="panel-body transcript-body" id="transcriptBody">
+                    <!-- Timestamped transcript segments injected by JS -->
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- ── Footer ── -->
+    <footer class="footer">
+        <p>Powered by OpenAI Whisper + GPT-4o &middot; Built as a portfolio project</p>
+    </footer>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
