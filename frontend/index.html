@@ -11,17 +11,20 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="stylesheet" href="/static/styles.css?v=11">
 </head>
 <body>
+
+    <!-- ── Particle Background Canvas ── -->
+    <canvas id="particleCanvas"></canvas>
 
     <!-- ── Hero Section ── -->
     <header id="hero" class="hero">
         <div class="hero-waveform" id="heroWaveform" aria-hidden="true">
             <!-- Waveform bars injected by JS -->
         </div>
-        <div class="hero-content">
-            <h1 class="hero-headline">Turn the room into the record.</h1>
+        <div class="hero-content container">
+            <h1 class="hero-headline">TURN MEETINGS INTO MINUTES.</h1>
             <p class="hero-sub">Upload a meeting recording. Get a structured summary, key decisions, and action items — in seconds.</p>
         </div>
     </header>
@@ -133,9 +136,31 @@
 
     <!-- ── Footer ── -->
     <footer class="footer">
-        <p>Powered by OpenAI Whisper + GPT-4o &middot; Built as a portfolio project</p>
+        <p>Powered by Gemini AI &middot; Meeting Summarizer</p>
     </footer>
 
-    <script src="/static/app.js"></script>
+    <!-- ── Chatbot Widget ── -->
+    <div class="chat-widget" id="chatWidget" class="hidden">
+        <div class="chat-panel" id="chatPanel">
+            <div class="chat-header">
+                <span>Ask about the meeting</span>
+                <button class="chat-close" id="chatCloseBtn">&times;</button>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <div class="chat-msg msg-bot">Hi! Once you process a recording, you can ask me questions about it.</div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="chatInput" class="chat-input" placeholder="Type a question..." disabled>
+                <button id="chatSubmit" class="chat-submit" disabled>Send</button>
+            </div>
+        </div>
+        <button class="chat-toggle" id="chatToggleBtn" aria-label="Open Chat">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+        </button>
+    </div>
+
+    <script src="/static/app.js?v=10"></script>
 </body>
 </html>

@@ -88,15 +88,18 @@ def _validate_result(data: dict) -> dict:
     return data
 
 
-def _call_llm(transcript: str) -> str:
-    """Make the GPT-4o API call and return raw content."""
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key or api_key == "sk-your-openai-api-key-here":
-        raise ValueError("Missing or unconfigured OPENAI_API_KEY. Please set your API key in .env.")
+# Gemini's OpenAI-compatible endpoint
+GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 
-    client = OpenAI(api_key=api_key)
+def _call_llm(transcript: str) -> str:
+    """Make the Gemini API call (via OpenAI-compatible endpoint) and return raw content."""
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key or api_key == "your-gemini-api-key-here":
+        raise ValueError("Missing or unconfigured GEMINI_API_KEY. Please set your API key in .env.")
+
+    client = OpenAI(api_key=api_key, base_url=GEMINI_BASE_URL)
     response = client.chat.completions.create(
-        model="gpt-4o",
+        model="gemini-3.6-flash",
         response_format={"type": "json_object"},
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},

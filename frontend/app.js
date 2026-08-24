@@ -219,6 +219,12 @@
             lastResult = data;
             renderResults(data);
             showSection(resultsSection);
+            
+            // Enable Chatbot
+            chatInput.disabled = false;
+            chatSubmit.disabled = false;
+            addMessage("I've read the transcript. What would you like to know?", false);
+            chatWidget.classList.remove('hidden');
         } else if (event === 'error') {
             showError(data.message);
         }
@@ -418,6 +424,224 @@
     }
 
     // ── Init ──
+    // Headline Letter Hover Ripple Effect
+    const hl = document.querySelector('.hero-headline');
+    if (hl) {
+        const text = hl.innerText;
+        hl.innerHTML = '';
+        const allSpans = [];
+        
+        // Split by words first so they don't break across lines
+        text.split(' ').forEach((word, wordIndex, array) => {
+            const wordSpan = document.createElement('span');
+            wordSpan.style.whiteSpace = 'nowrap';
+            wordSpan.style.display = 'inline-block';
+            
+            word.split('').forEach((char) => {
+                const charSpan = document.createElement('span');
+                charSpan.className = 'char-span';
+                charSpan.innerText = char;
+                wordSpan.appendChild(charSpan);
+                allSpans.push(charSpan);
+            });
+            
+            hl.appendChild(wordSpan);
+            if (wordIndex < array.length - 1) {
+                hl.appendChild(document.createTextNode(' '));
+            }
+        });
+
+        allSpans.forEach((span, index) => {
+            span.addEventListener('mouseenter', () => {
+                if (index > 0) allSpans[index - 1].classList.add('wave-neighbor');
+                if (index < allSpans.length - 1) allSpans[index + 1].classList.add('wave-neighbor');
+            });
+            span.addEventListener('mouseleave', () => {
+                if (index > 0) allSpans[index - 1].classList.remove('wave-neighbor');
+                if (index < allSpans.length - 1) allSpans[index + 1].classList.remove('wave-neighbor');
+            });
+        });
+    }
+    
+    // Chatbot Logic
+    const chatToggleBtn = $('chatToggleBtn');
+    const chatPanel = $('chatPanel');
+    const chatCloseBtn = $('chatCloseBtn');
+    const chatInput = $('chatInput');
+    const chatSubmit = $('chatSubmit');
+    const chatMessages = $('chatMessages');
+    
+    let isChatOpen = false;
+
+    function toggleChat() {
+        isChatOpen = !isChatOpen;
+        if (isChatOpen) {
+            chatPanel.classList.add('active');
+            chatInput.focus();
+        } else {
+            chatPanel.classList.remove('active');
+        }
+    }
+
+    chatToggleBtn.addEventListener('click', toggleChat);
+    chatCloseBtn.addEventListener('click', toggleChat);
+
+    function addMessage(text, isUser) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'chat-msg ' + (isUser ? 'msg-user' : 'msg-bot');
+        msgDiv.textContent = text;
+        chatMessages.appendChild(msgDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    async function sendChatMessage() {
+        const msg = chatInput.value.trim();
+        if (!msg || !lastResult) return;
+        
+        chatInput.value = '';
+        chatInput.disabled = true;
+        chatSubmit.disabled = true;
+        
+        addMessage(msg, true);
+        
+        // Prepare context
+        const contextString = `Summary: ${lastResult.summary}\nDecisions: ${lastResult.decisions?.join(',')}\nTranscript: ${lastResult.transcript?.text?.substring(0, 5000)}`;
+
+        try {
+            const res = await fetch('/api/chat', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ message: msg, context: contextString })
+            });
+            const data = await res.json();
+            if (data.response) {
+                addMessage(data.response, false);
+            } else {
+                addMessage("Oops, something went wrong.", false);
+            }
+        } catch (e) {
+            addMessage("Error connecting to chat.", false);
+        }
+        
+        chatInput.disabled = false;
+        chatSubmit.disabled = false;
+        chatInput.focus();
+    }
+
+    chatSubmit.addEventListener('click', sendChatMessage);
+    chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') sendChatMessage();
+    });
+    
+    // Original init calls
     initHeroWaveform();
+
+    // ── Interactive Particle Background ──
+    (function initParticles() {
+        const canvas = document.getElementById('particleCanvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+
+        let W, H;
+        let mouse = { x: null, y: null };
+        const PARTICLE_COUNT = 70;
+        const CONNECTION_DIST = 120;
+        const MOUSE_RADIUS = 150;
+        const particles = [];
+
+        function resize() {
+            W = canvas.width = window.innerWidth;
+            H = canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Track mouse
+        document.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+        document.addEventListener('mouseleave', () => {
+            mouse.x = null;
+            mouse.y = null;
+        });
+
+        // Particle class
+        class Particle {
+            constructor() {
+                this.x = Math.random() * W;
+                this.y = Math.random() * H;
+                this.vx = (Math.random() - 0.5) * 0.4;
+                this.vy = (Math.random() - 0.5) * 0.4;
+                this.radius = Math.random() * 3 + 1.5;
+                this.baseAlpha = Math.random() * 0.4 + 0.1;
+            }
+            update() {
+                // Mouse repulsion
+                if (mouse.x !== null && mouse.y !== null) {
+                    const dx = this.x - mouse.x;
+                    const dy = this.y - mouse.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < MOUSE_RADIUS) {
+                        const force = (MOUSE_RADIUS - dist) / MOUSE_RADIUS * 0.02;
+                        this.vx += (dx / dist) * force;
+                        this.vy += (dy / dist) * force;
+                    }
+                }
+
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Dampen velocity
+                this.vx *= 0.999;
+                this.vy *= 0.999;
+
+                // Wrap edges
+                if (this.x < 0) this.x = W;
+                if (this.x > W) this.x = 0;
+                if (this.y < 0) this.y = H;
+                if (this.y > H) this.y = 0;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${this.baseAlpha})`;
+                ctx.fill();
+            }
+        }
+
+        // Create particles
+        for (let i = 0; i < PARTICLE_COUNT; i++) {
+            particles.push(new Particle());
+        }
+
+        function drawConnections() {
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < CONNECTION_DIST) {
+                        const alpha = (1 - dist / CONNECTION_DIST) * 0.12;
+                        ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
+                        ctx.lineWidth = 0.5;
+                        ctx.beginPath();
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, W, H);
+            particles.forEach(p => { p.update(); p.draw(); });
+            drawConnections();
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    })();
 
 })();

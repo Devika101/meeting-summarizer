@@ -14,6 +14,7 @@ import tempfile
 import traceback
 
 from dotenv import load_dotenv
+from pydantic import BaseModel
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, FileResponse
@@ -103,8 +104,8 @@ async def process_audio(file: UploadFile = File(...)):
         except Exception as e:
             error_msg = str(e)
             err_lower = error_msg.lower()
-            if any(k in err_lower for k in ["invalid_api_key", "authentication", "401", "user not found", "unauthorized", "api key"]):
-                error_msg = "Invalid or missing OpenAI API key. Please set a valid OPENAI_API_KEY in your .env file."
+            if any(k in err_lower for k in ["invalid_api_key", "authentication", "401", "user not found", "unauthorized", "api key", "gemini_api_key", "api_key_invalid", "permission_denied"]):
+                error_msg = "Invalid or missing Gemini API key. Please set a valid GEMINI_API_KEY in your .env file."
             elif any(k in err_lower for k in ["could not process", "audio", "corrupt", "unsupported"]):
                 error_msg = f"Could not process this audio file. It may be corrupted or in an unsupported format. ({error_msg})"
 
@@ -128,10 +129,36 @@ async def process_audio(file: UploadFile = File(...)):
 # Serve frontend static files
 FRONTEND_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend")
 
+class ChatRequest(BaseModel):
+    message: str
+    context: str
+
+@app.post("/api/chat")
+async def chat_with_bot(req: ChatRequest):
+    """Chat endpoint to query the meeting summary."""
+    try:
+        from openai import OpenAI
+        # Using the same OpenAI-compatible Gemini endpoint as summarization
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key or api_key == "your-gemini-api-key-here":
+            raise HTTPException(status_code=401, detail="API Key not configured")
+        
+        client = OpenAI(api_key=api_key, base_url="https://generativelanguage.googleapis.com/v1beta/openai/")
+        response = client.chat.completions.create(
+            model="gemini-3.6-flash",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant embedded in a meeting summarizer app. Your job is to answer questions strictly based on the provided meeting context. Be concise and conversational."},
+                {"role": "user", "content": f"MEETING CONTEXT:\n{req.context}\n\nUSER QUESTION:\n{req.message}"},
+            ],
+            temperature=0.3,
+        )
+        return {"response": response.choices[0].message.content}
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/")
 async def serve_index():
     return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
-
 
 app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
