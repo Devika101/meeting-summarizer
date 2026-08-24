@@ -14,6 +14,7 @@
 </div>
 
 <br/>
+LIVE DEPLOYMENT: https://meeting-summarizer-kdjb.vercel.app/
 
 ## ✨ Features
 
